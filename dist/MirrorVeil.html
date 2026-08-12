@@ -1,0 +1,2209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mirror Veil | Local Grey Mirror privacy prep</title>
+  <meta name="description" content="Mirror Veil runs locally in your browser so you can optionally redact names, phones, emails, card numbers, and addresses before uploading a CSV to Grey Mirror.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111c;
+      --panel: rgba(10, 24, 39, 0.94);
+      --panel-strong: rgba(14, 30, 48, 0.98);
+      --border: rgba(101, 188, 255, 0.22);
+      --text: #eef7ff;
+      --muted: rgba(214, 229, 244, 0.78);
+      --accent: #76e0ff;
+      --accent-strong: #3cc7f4;
+      --danger: #ff8a8a;
+      --success: #9dffc2;
+      --shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+      font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(72, 187, 255, 0.18), transparent 34%),
+        radial-gradient(circle at 80% 0%, rgba(140, 255, 207, 0.12), transparent 26%),
+        linear-gradient(180deg, #08111c 0%, #050b13 100%);
+      color: var(--text);
+    }
+    .mv-shell {
+      width: min(1100px, calc(100% - 2rem));
+      margin: 2rem auto;
+      display: grid;
+      gap: 1.25rem;
+    }
+    .mv-hero, .mv-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .mv-hero {
+      padding: 1.5rem;
+      display: grid;
+      gap: 1rem;
+    }
+    .mv-kicker {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 2vw + 1.4rem, 3.3rem);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+    .mv-hero p, .mv-panel p, .mv-note, .mv-checklist li, label, .mv-option-copy {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .mv-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1rem;
+    }
+    .mv-panel {
+      padding: 1.25rem;
+    }
+    .mv-form {
+      display: grid;
+      gap: 1rem;
+    }
+    .mv-dropzone, .mv-preview, .mv-note, .mv-stat, textarea {
+      background: var(--panel-strong);
+      border: 1px solid rgba(118, 224, 255, 0.16);
+      border-radius: 18px;
+    }
+    .mv-dropzone {
+      padding: 1rem;
+      display: grid;
+      gap: 0.8rem;
+    }
+    .mv-file {
+      width: 100%;
+      color: var(--muted);
+    }
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      resize: vertical;
+      padding: 0.9rem 1rem;
+      color: var(--text);
+    }
+    .mv-options {
+      display: grid;
+      gap: 0.7rem;
+    }
+    .mv-option-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: rgba(7, 16, 27, 0.74);
+      border: 1px solid rgba(118, 224, 255, 0.1);
+      border-radius: 16px;
+    }
+    .mv-option-row input { margin-top: 0.2rem; }
+    .mv-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      align-items: center;
+    }
+    .mv-button {
+      appearance: none;
+      border: 1px solid rgba(118, 224, 255, 0.25);
+      background: linear-gradient(135deg, rgba(34, 74, 112, 0.9), rgba(16, 42, 66, 0.94));
+      color: var(--text);
+      padding: 0.95rem 1.25rem;
+      border-radius: 999px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .mv-button--secondary {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .mv-status {
+      min-height: 1.5rem;
+      font-size: 0.92rem;
+    }
+    .mv-status[data-tone="success"] { color: var(--success); }
+    .mv-status[data-tone="error"] { color: var(--danger); }
+    .mv-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.7rem;
+    }
+    .mv-stat {
+      padding: 0.85rem 0.95rem;
+      display: grid;
+      gap: 0.25rem;
+    }
+    .mv-stat span {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .mv-contract {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .mv-contract h3 {
+      margin: 0 0 0.4rem;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .mv-contract ul { margin: 0; padding-left: 1.1rem; }
+    .mv-contract li { margin-bottom: 0.25rem; }
+    .mv-receipt {
+      margin-top: 1rem;
+      padding: 0.9rem;
+      overflow-x: auto;
+      white-space: pre;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+    }
+    .mv-preview {
+      padding: 1rem;
+      overflow: auto;
+    }
+    .mv-preview-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .mv-preview-table th,
+    .mv-preview-table td {
+      text-align: left;
+      vertical-align: top;
+      padding: 0.75rem 0.65rem;
+      border-bottom: 1px solid rgba(118, 224, 255, 0.1);
+      font-size: 0.9rem;
+    }
+    .mv-preview-table th {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+    }
+    .mv-checklist {
+      margin: 0;
+      padding-left: 1.1rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .mv-note {
+      padding: 0.95rem 1rem;
+    }
+    .mv-empty {
+      margin: 0;
+      color: var(--muted);
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #d8f4ff;
+    }
+    @media (max-width: 860px) {
+      .mv-shell { width: min(100%, calc(100% - 1rem)); margin: 1rem auto; }
+      .mv-grid { grid-template-columns: 1fr; }
+      .mv-hero, .mv-panel { border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mv-shell">
+    <section class="mv-hero">
+      <span class="mv-kicker">Optional local privacy prep</span>
+      <h1>Mirror Veil turns raw message exports into a Grey Mirror-ready CSV on your device.</h1>
+      <p>Runs locally in your browser. Nothing is uploaded by this tool. Turn redaction on if you want names, phones, emails, card numbers, street addresses, and optional URLs scrubbed before you upload the cleaned CSV to Grey Mirror.</p>
+      <div class="mv-stats">
+        <div class="mv-stat"><span>Output</span><strong><code>timestamp,sender,message</code></strong></div>
+        <div class="mv-stat"><span>Privacy</span><strong>Local-only processing</strong></div>
+        <div class="mv-stat"><span>Mode</span><strong>Redaction is optional</strong></div>
+      </div>
+    </section>
+
+    <div class="mv-grid">
+      <section class="mv-panel">
+        <form id="mv-form" class="mv-form">
+          <div class="mv-dropzone">
+            <label for="mv-file"><strong>Choose a conversation export</strong></label>
+            <input id="mv-file" class="mv-file" type="file" accept=".csv,.txt,.json,.log,.text" />
+            <p class="mv-note">Use CSV, JSON, or a timestamped text export from iMessage, WhatsApp, or another app. If your export is already clean, turn redaction off and Mirror Veil will just normalize it into timestamp,sender,message.</p>
+          </div>
+
+          <div>
+            <label for="mv-paste"><strong>Or paste an export directly</strong></label>
+            <textarea id="mv-paste" placeholder="Paste a message export here if you do not want to choose a file."></textarea>
+          </div>
+
+          <div class="mv-options">
+            <label class="mv-option-row">
+              <input id="mv-enable-redaction" type="checkbox" checked />
+              <span>
+                <strong>Enable redaction</strong>
+                <div class="mv-option-copy">Leave this on for local privacy prep. Turn it off if you only want a clean CSV wrapper.</div>
+              </span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-names" data-mv-redaction-option="true" type="checkbox" checked />
+              <span><strong>Redact names</strong><div class="mv-option-copy">Sender labels become Person A / Person B, and matching names in the message body are pseudonymized too.</div></span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-emails" data-mv-redaction-option="true" type="checkbox" checked />
+              <span><strong>Redact emails</strong><div class="mv-option-copy">Common email addresses become <code>[EMAIL]</code>.</div></span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-phones" data-mv-redaction-option="true" type="checkbox" checked />
+              <span><strong>Redact phone numbers</strong><div class="mv-option-copy">US-style phone numbers become <code>[PHONE]</code>.</div></span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-addresses" data-mv-redaction-option="true" type="checkbox" checked />
+              <span><strong>Redact street addresses</strong><div class="mv-option-copy">Patterns like <code>123 Main St</code> become <code>[ADDRESS]</code>.</div></span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-cards" data-mv-redaction-option="true" type="checkbox" checked />
+              <span><strong>Redact card numbers</strong><div class="mv-option-copy">Valid 13–19 digit card numbers become <code>[CARD]</code>.</div></span>
+            </label>
+            <label class="mv-option-row">
+              <input id="mv-redact-urls" data-mv-redaction-option="true" type="checkbox" />
+              <span><strong>Redact URLs and @handles</strong><div class="mv-option-copy">Optional if you want a stricter privacy pass.</div></span>
+            </label>
+          </div>
+
+          <div>
+            <label for="mv-custom-names"><strong>Custom names or nicknames to scrub</strong></label>
+            <textarea id="mv-custom-names" data-mv-redaction-option="true" placeholder="Add names or nicknames, separated by commas or new lines."></textarea>
+          </div>
+
+          <div class="mv-actions">
+            <button class="mv-button" type="submit">Create cleaned CSV</button>
+            <a id="mv-download" class="mv-button mv-button--secondary" href="#" hidden>Download cleaned CSV</a>
+            <a id="mv-receipt-download" class="mv-button mv-button--secondary" href="#" hidden>Download receipt</a>
+          </div>
+          <div id="mv-status" class="mv-status" aria-live="polite"></div>
+        </form>
+      </section>
+
+      <section class="mv-panel">
+        <p class="mv-note"><strong>How to use it</strong><br>1. Choose or paste the export.<br>2. Leave redaction on or turn it off.<br>3. Review the preview.<br>4. Download the cleaned CSV and upload it to Grey Mirror.</p>
+        <ul class="mv-checklist">
+          <li>Keeps timestamps when the source export contains them.</li>
+          <li>Outputs a simple ingest shape Grey Mirror already accepts: <code>timestamp,sender,message</code>.</li>
+          <li>Best for two-person threads, but it can normalize larger exports too.</li>
+          <li>Redaction helps with common identifiers. Review the cleaned CSV before upload because context can still reveal identity.</li>
+        </ul>
+        <div id="mv-contract" class="mv-contract"></div>
+        <div id="mv-stats" class="mv-stats"></div>
+        <div id="mv-preview" class="mv-preview"><p class="mv-empty">No preview rows yet.</p></div>
+        <pre id="mv-receipt" class="mv-receipt" hidden></pre>
+      </section>
+    </div>
+  </div>
+  <script>const MIRROR_VEIL_DOWNLOAD_FILE = "MirrorVeil.html"
+const MIRROR_VEIL_NAME = "Mirror Veil"
+const MIRROR_VEIL_OUTPUT_LABEL = "timestamp,sender,message"
+const MIRROR_VEIL_TAGLINE = "Optional local privacy prep"
+import { sha256Hex } from './mirrorVeilSha256.mjs'
+
+{
+  MIRROR_VEIL_DOWNLOAD_FILE,
+  MIRROR_VEIL_DOWNLOAD_VERSION,
+  MIRROR_VEIL_NAME,
+  MIRROR_VEIL_OUTPUT_LABEL,
+  MIRROR_VEIL_TAGLINE,
+}
+
+const MIRROR_VEIL_CSV_HEADERS = Object.freeze(['timestamp', 'sender', 'message'])
+const MIRROR_VEIL_DEFAULT_OPTIONS = Object.freeze({
+  enabled: true,
+  redactNames: true,
+  redactEmails: true,
+  redactPhones: true,
+  redactAddresses: true,
+  redactCreditCards: true,
+  redactUrls: false,
+  customNames: [],
+})
+
+const MIRROR_VEIL_CONTRACT = Object.freeze({
+  removed: Object.freeze([
+    'Names, nicknames, and handles',
+    'Phone numbers and email addresses',
+    'Street addresses',
+    'Card numbers that pass a Luhn check',
+    'Links, when you turn that option on',
+  ]),
+  preserved: Object.freeze([
+    'Timestamps and the gaps between messages',
+    'Who spoke when, and the order they spoke in',
+    'How long each message was',
+    'The wording that carries tone and emotion',
+  ]),
+})
+
+const GENERIC_SENDER_LABELS = new Set([
+  '',
+  'unknown',
+  'counterparty',
+  'n/a',
+  'null',
+  'none',
+  'undefined',
+  'not available',
+  'not set',
+  '[object object]',
+  'object object',
+  'unknown sender',
+  'private user',
+  'sender',
+  'recipient',
+  'receiver',
+  'from',
+  'to',
+  'participant',
+])
+const GENERIC_SENDER_NUMBERED_RE = /^(?:person|participant)\s*\d+$/i
+const MIRROR_VEIL_NORMALIZE_CACHE_LIMIT = 4096
+const MIRROR_VEIL_SENDER_LABEL_MAX_REGEX_CHARS = 1024
+const MIRROR_VEIL_MAX_LINE_DELIMITED_JSON_ROWS = 200000
+const SENDER_PREFIX_STRIP_MAX_PASSES = 3
+const SENDER_TRANSPORT_STRIP_MAX_PASSES = 2
+const STREET_SUFFIX_PATTERN = '(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|terrace|ter|place|pl|parkway|pkwy|circle|cir)\\b(?=\\.?\\s|\\.?$|[,.!?;:])'
+const ADDRESS_PATTERN = new RegExp(`\\b\\d{1,6}\\s+[a-z0-9.'-]+(?:\\s+[a-z0-9.'-]+){0,4}\\s${STREET_SUFFIX_PATTERN}`, 'gi')
+const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
+const PHONE_PATTERN = /(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}\b/g
+const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<]+/gi
+const HANDLE_PATTERN = /(^|\s)@[a-z0-9_]{2,32}\b/gi
+const CSV_DELIMITER_CANDIDATES = [',', ';', '\t', '|']
+const DIRECTION_SEPARATOR_RE = '(?:->|=>|⟶|⟹|⇢|↦|→|➜|➡|➝|➞|[:：=\\-|/])'
+const DIRECTION_PREFIX_ALT_FRAGMENT = '(?:de|para|à|von|an|desde|hacia|发件人|收件人|寄件人|收件者|от|кому|fra|til|od|do|fran|från|till|mittente|destinatario|destinataire|expediteur|expéditeur|remitente|remetente|afzender|ontvanger)'
+const ENDPOINT_SCHEME_RE = /^(?:mailto:|tel:|sms:)/i
+const ENDPOINT_EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+const ENDPOINT_PHONEISH_RE = /^[+()0-9.\-\s]+$/
+const ENDPOINT_DIGITS_RE = /\d/g
+const COMPOSITE_ANGLE_ENDPOINT_RE = /^["'“”‘’\s]*([^<>＜＞]{1,160}?)["'“”‘’\s]*[<＜]\s*([^<>＜＞]{3,})\s*[>＞]$/u
+const COMPOSITE_PAREN_ENDPOINT_RE = /^(.{1,160}?)\s*[\(（{｛](.{3,})[\)）}｝]$/u
+const COMPOSITE_BRACKET_ENDPOINT_RE = /^(.{1,160}?)\s*[\[［【{｛](.{3,})[\]］】}｝]$/u
+const COMPOSITE_ANGLE_ENDPOINT_LOOSE_RE = /["'“”‘’\s]*([^<>＜＞]{1,160}?)["'“”‘’\s]*[<＜]\s*([^<>＜＞]{3,})\s*[>＞]/u
+const COMPOSITE_PAREN_ENDPOINT_LOOSE_RE = /(.{1,160}?)\s*[\(（{｛](.{3,})[\)）}｝]/u
+const COMPOSITE_BRACKET_ENDPOINT_LOOSE_RE = /(.{1,160}?)\s*[\[［【{｛](.{3,})[\]］】}｝]/u
+const SENDER_TRANSPORT_SUFFIX_CHANNEL_FRAGMENT = '(?:imessage|sms|mms|rcs|whatsapp|telegram|signal|messenger|facebook|instagram|wechat|line|kakao|viber|email|mail|text|android\\s*sms|iphone\\s*sms)'
+const SENDER_TRAILING_TRANSPORT_SUFFIX_RE = new RegExp(
+  `(?:\\s*(?:[-–—|,;/]+)?\\s*)(?:via|through|using|over|sent\\s+as|sent\\s+via)\\s+${SENDER_TRANSPORT_SUFFIX_CHANNEL_FRAGMENT}\\b(?:\\s*\\([^)]*\\))?$`,
+  'iu'
+)
+const CHAT_LINE_PATTERNS = [
+  /^(?<sender>[^,\n]{1,80}),\s*\[(?<timestamp>[^\]]+)\]\s*:?\s*(?<message>.+)$/,
+  /^\[(?<timestamp>[^\]]+)\]\s*(?<sender>[^:]{1,80}):\s*(?<message>.*)$/,
+  /^\[(?<timestamp>[^\]]+)\]\s*(?<sender>[^-–—]{1,80})\s*[-–—]\s*(?<message>.*)$/,
+  /^(?<timestamp>\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s?(?:AM|PM)?)\s*[-–—]\s*(?<sender>[^:]{1,80}):\s*(?<message>.*)$/i,
+  /^(?<timestamp>\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s?(?:AM|PM)?)\s*[-–—]\s*(?<sender>[^-–—:]{1,80})\s*[-–—]\s*(?<message>.*)$/i,
+  /^(?<timestamp>\d{4}-\d{2}-\d{2}[T\s]\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s*[-–—]\s*(?<sender>[^:]{1,80}):\s*(?<message>.*)$/,
+  /^(?<timestamp>\d{1,4}[^|]{3,})\s*\|\s*(?<sender>[^|]{1,80})\s*\|\s*(?<message>.+)$/,
+  /^(?<sender>[^|]{1,80})\s*\|\s*(?<timestamp>\d{1,4}[^|]{3,})\s*\|\s*(?<message>.+)$/,
+  /^(?<sender>[^:：]{1,80})[:：]\s*(?<message>.+)$/,
+]
+const CHAT_EXPORT_METADATA_RE = /^(?:#\s*(?:grey mirror messages export|thread|exported|conversation(?: with)?|chat history with)\b|(?:grey mirror messages export|thread|exported|conversation(?: with)?|chat history with)\b[:\s-])/i
+const SENDER_ZERO_WIDTH_RE = /[\u200B-\u200D\uFEFF]/g
+const SENDER_PREFIX_RE = new RegExp(
+  `^(?:from|to|sender|recipient)\\b(?:\\s+|\\s*${DIRECTION_SEPARATOR_RE}\\s*)`,
+  'i'
+)
+const SENDER_PREFIX_ALT_RE = new RegExp(
+  `^${DIRECTION_PREFIX_ALT_FRAGMENT}\\s*${DIRECTION_SEPARATOR_RE}\\s*`,
+  'i'
+)
+const DIRECTIONAL_SENDER_ONLY_RE = /^(?:from|to|sender|recipient|de|para|à|von|an|desde|hacia|от|кому|fra|til|od|do|fran|från|till|mittente|destinatario|destinataire|expediteur|expéditeur|remitente|remetente|afzender|ontvanger)$/i
+const SENDER_PREFIX_ALT_ALLOWLIST = new Set([
+  'from',
+  'to',
+  'sender',
+  'recipient',
+  'sent',
+  'received',
+  'de',
+  'para',
+  'à',
+  'von',
+  'desde',
+  'hacia',
+  'fra',
+  'til',
+  'od',
+  'fran',
+  'från',
+  'till',
+  'mittente',
+  'destinatario',
+  'destinataire',
+  'expediteur',
+  'expéditeur',
+  'remitente',
+  'remetente',
+  'afzender',
+  'ontvanger',
+  '发件人',
+  '收件人',
+  '寄件人',
+  '收件者',
+  'от',
+  'кому',
+])
+const SENDER_PREFIX_WORD_RE = /^([^\s]+)\s+([\s\S]+)$/u
+const NESTED_DIRECTIONAL_SENDER_RE = new RegExp(
+  `^([^:：=|]{1,80})(?:${DIRECTION_SEPARATOR_RE}|[-–—])\\s*([\\s\\S]+)$`
+)
+
+const cloneOptions = (options = {}) => ({
+  ...MIRROR_VEIL_DEFAULT_OPTIONS,
+  ...options,
+  customNames: Array.isArray(options?.customNames)
+    ? options.customNames.map((value) => String(value || '').trim()).filter(Boolean)
+    : String(options?.customNames || '')
+      .split(/[\n,]/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+})
+
+const normalizeKey = (value) => String(value || '')
+  .trim()
+  .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '_')
+  .replace(/^_+|_+$/g, '')
+const normalizeSenderKey = (value = '') => String(value || '')
+  .normalize('NFC')
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .trim()
+const isGenericSenderLabelValue = (value = '') => {
+  const normalized = normalizeSenderKey(value)
+  if (!normalized) return true
+  if (GENERIC_SENDER_LABELS.has(normalized)) return true
+  if (GENERIC_SENDER_NUMBERED_RE.test(normalized)) return true
+  return false
+}
+const stripSenderDirectionalPrefixes = (value = '') => {
+  let output = String(value || '')
+    .normalize('NFC')
+    .replace(SENDER_ZERO_WIDTH_RE, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\u202f/g, ' ')
+  for (let index = 0; index < SENDER_PREFIX_STRIP_MAX_PASSES; index += 1) {
+    let next = output
+      .replace(SENDER_PREFIX_RE, '')
+      .replace(SENDER_PREFIX_ALT_RE, '')
+    if (next === output) {
+      const allowlistMatch = output.match(SENDER_PREFIX_WORD_RE)
+      if (!allowlistMatch) break
+      const prefixRaw = String(allowlistMatch[1] || '').toLowerCase()
+      const prefixFolded = prefixRaw
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+      if (
+        !SENDER_PREFIX_ALT_ALLOWLIST.has(prefixRaw)
+        && !SENDER_PREFIX_ALT_ALLOWLIST.has(prefixFolded)
+      ) break
+      next = String(allowlistMatch[2] || '')
+    }
+    output = next
+  }
+  return output
+}
+
+const stripSenderTransportSuffix = (value = '') => {
+  let output = String(value || '').normalize('NFC')
+  for (let index = 0; index < SENDER_TRANSPORT_STRIP_MAX_PASSES; index += 1) {
+    const next = output.replace(SENDER_TRAILING_TRANSPORT_SUFFIX_RE, '').trim()
+    if (!next || next === output) break
+    output = next
+  }
+  return output
+}
+
+const looksLikeEndpointToken = (value = '') => {
+  const normalized = String(value || '')
+    .normalize('NFC')
+    .slice(0, MIRROR_VEIL_SENDER_LABEL_MAX_REGEX_CHARS)
+    .trim()
+  if (!normalized) return false
+  if (ENDPOINT_SCHEME_RE.test(normalized)) return true
+  if (ENDPOINT_EMAIL_RE.test(normalized)) return true
+  const digitCount = (normalized.match(ENDPOINT_DIGITS_RE) || []).length
+  return digitCount >= 7 && ENDPOINT_PHONEISH_RE.test(normalized)
+}
+
+const extractDisplayNameFromComposite = (value = '') => {
+  const normalized = String(value || '')
+    .normalize('NFC')
+    .slice(0, MIRROR_VEIL_SENDER_LABEL_MAX_REGEX_CHARS * 2)
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!normalized) return ''
+  const oversized = normalized.length > MIRROR_VEIL_SENDER_LABEL_MAX_REGEX_CHARS
+  const matchSource = oversized
+    ? normalized.slice(0, MIRROR_VEIL_SENDER_LABEL_MAX_REGEX_CHARS)
+    : normalized
+
+  const cleanCompositePart = (part = '') => String(part || '')
+    .normalize('NFC')
+    .replace(SENDER_ZERO_WIDTH_RE, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\u202f/g, ' ')
+    .replace(/^['"“”‘’\s]+|['"“”‘’\s]+$/g, '')
+    .replace(SENDER_TRAILING_TRANSPORT_SUFFIX_RE, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const angleMatch = matchSource.match(COMPOSITE_ANGLE_ENDPOINT_RE) || matchSource.match(COMPOSITE_ANGLE_ENDPOINT_LOOSE_RE)
+  if (angleMatch) {
+    const display = cleanCompositePart(angleMatch[1] || '')
+    const endpoint = cleanCompositePart(angleMatch[2] || '')
+    if (display && looksLikeEndpointToken(endpoint) && !looksLikeEndpointToken(display)) {
+      return display
+    }
+  }
+
+  const parenMatch = matchSource.match(COMPOSITE_PAREN_ENDPOINT_RE) || matchSource.match(COMPOSITE_PAREN_ENDPOINT_LOOSE_RE)
+  if (parenMatch) {
+    const display = cleanCompositePart(parenMatch[1] || '')
+    const endpoint = cleanCompositePart(parenMatch[2] || '')
+    if (display && looksLikeEndpointToken(endpoint) && !looksLikeEndpointToken(display)) {
+      return display
+    }
+  }
+
+  const bracketMatch = matchSource.match(COMPOSITE_BRACKET_ENDPOINT_RE) || matchSource.match(COMPOSITE_BRACKET_ENDPOINT_LOOSE_RE)
+  if (bracketMatch) {
+    const display = cleanCompositePart(bracketMatch[1] || '')
+    const endpoint = cleanCompositePart(bracketMatch[2] || '')
+    if (display && looksLikeEndpointToken(endpoint) && !looksLikeEndpointToken(display)) {
+      return display
+    }
+  }
+
+  return oversized ? normalized.slice(0, 160) : normalized
+}
+
+const senderLabelNormalizeCache = new Map()
+
+const normalizeSenderLabelUncached = (value) => {
+  let output = extractDisplayNameFromComposite(stripSenderTransportSuffix(stripSenderDirectionalPrefixes(String(value || '').normalize('NFC'))))
+    .replace(SENDER_ZERO_WIDTH_RE, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\u202f/g, ' ')
+    .replace(/^['"\s]+|['"\s]+$/g, '')
+    .replace(SENDER_TRAILING_TRANSPORT_SUFFIX_RE, '')
+    .replace(/^[\[\]{}()<>「」『』【】（）《》«»]+|[\[\]{}()<>「」『』【】（）《》«»]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  output = stripSenderTransportSuffix(output).trim()
+  if (isGenericSenderLabelValue(output)) return 'Unknown'
+  return output || 'Unknown'
+}
+
+const normalizeSenderLabel = (value) => {
+  const raw = String(value || '').normalize('NFC')
+  if (senderLabelNormalizeCache.has(raw)) {
+    return senderLabelNormalizeCache.get(raw)
+  }
+  const normalized = normalizeSenderLabelUncached(raw)
+  senderLabelNormalizeCache.set(raw, normalized)
+  if (senderLabelNormalizeCache.size > MIRROR_VEIL_NORMALIZE_CACHE_LIMIT) {
+    senderLabelNormalizeCache.delete(senderLabelNormalizeCache.keys().next().value)
+  }
+  return normalized
+}
+const normalizeEntityKey = (value) => normalizeSenderKey(normalizeSenderLabel(value))
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const NESTED_SKIP_KEYS = new Set([
+  'id',
+  'message_id',
+  'messageid',
+  'thread_id',
+  'threadid',
+  'conversation_id',
+  'conversationid',
+  'chat_id',
+  'chatid',
+  'uuid',
+  'guid',
+  'ts',
+  'ts_ms',
+  'timestamp',
+  'timestamp_ms',
+  'timestamp_us',
+  'timestamp_usec',
+  'date',
+  'time',
+  'datetime',
+])
+const NESTED_SENDER_PRIORITY_KEYS = [
+  'name',
+  'display_name',
+  'displayname',
+  'sender_name',
+  'sender_display_name',
+  'from_name',
+  'from_display_name',
+  'author_name',
+  'participant_name',
+  'handle',
+  'username',
+  'email',
+  'phone',
+  'number',
+  'address',
+  'value',
+]
+const NESTED_MESSAGE_PRIORITY_KEYS = [
+  'message',
+  'message_text',
+  'message_body',
+  'text',
+  'content',
+  'body',
+  'body_text',
+  'caption',
+  'description',
+  'value',
+]
+
+const extractCompositeSenderName = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
+  const record = value || {}
+  const normalizedRecord = {}
+  Object.entries(record).forEach(([key, entry]) => {
+    normalizedRecord[normalizeKey(key)] = entry
+  })
+
+  const pick = (...keys) => {
+    for (const key of keys) {
+      const normalizedKey = normalizeKey(key)
+      const raw = normalizedRecord[normalizedKey]
+      if (raw === undefined || raw === null) continue
+      if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+        const text = String(raw).replace(/\s+/g, ' ').trim()
+        if (text) return text
+        continue
+      }
+      const nestedTokens = collectNestedTokens(raw, {
+        priorityKeys: NESTED_SENDER_PRIORITY_KEYS,
+        maxTokens: 2,
+      })
+      const firstToken = String((nestedTokens || [])[0] || '').replace(/\s+/g, ' ').trim()
+      if (firstToken) return firstToken
+    }
+    return ''
+  }
+
+  const prefix = pick('name_prefix', 'nameprefix', 'prefix')
+  const first = pick('first_name', 'firstname', 'given_name', 'givenname')
+  const middle = pick('middle_name', 'middlename', 'middle_initial', 'middleinitial')
+  const last = pick('last_name', 'lastname', 'family_name', 'familyname', 'surname')
+  const suffix = pick('name_suffix', 'namesuffix', 'suffix')
+  const parts = [prefix, first, middle, last, suffix].filter(Boolean)
+  if (parts.length < 2) return ''
+  return parts.join(' ').replace(/\s+/g, ' ').trim()
+}
+
+const collectNestedTokens = (value, { priorityKeys = [], depth = 0, maxDepth = 6, maxTokens = 24, seen = new WeakSet() } = {}) => {
+  if (depth > maxDepth) return []
+  if (value === null || value === undefined) return []
+  if (typeof value === 'string') {
+    const raw = value.normalize('NFC').replace(/\s+/g, ' ').trim()
+    if (!raw || /^\[object\s+object\]$/i.test(raw)) return []
+    if (
+      (raw.startsWith('{') && raw.endsWith('}'))
+      || (raw.startsWith('[') && raw.endsWith(']'))
+    ) {
+      try {
+        const parsed = JSON.parse(raw)
+        return collectNestedTokens(parsed, { priorityKeys, depth: depth + 1, maxDepth, maxTokens, seen })
+      } catch (_error) {
+        // Keep malformed pseudo-JSON as plain text.
+      }
+    }
+    return [raw]
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return [String(value)]
+  }
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return []
+    seen.add(value)
+    const tokens = []
+    for (const entry of value) {
+      tokens.push(...collectNestedTokens(entry, { priorityKeys, depth: depth + 1, maxDepth, maxTokens, seen }))
+      if (tokens.length >= maxTokens) break
+    }
+    return tokens
+  }
+  if (typeof value !== 'object') return []
+  if (seen.has(value)) return []
+  seen.add(value)
+
+  const record = value || {}
+  const normalizedRecord = {}
+  Object.entries(record).forEach(([key, entry]) => {
+    normalizedRecord[normalizeKey(key)] = entry
+  })
+
+  const prioritized = []
+  for (const key of priorityKeys) {
+    const normalizedKey = normalizeKey(key)
+    if (normalizedRecord[normalizedKey] === undefined || normalizedRecord[normalizedKey] === null) continue
+    prioritized.push(...collectNestedTokens(normalizedRecord[normalizedKey], { priorityKeys, depth: depth + 1, maxDepth, maxTokens, seen }))
+    if (prioritized.length >= maxTokens) break
+  }
+  if (prioritized.length) return prioritized
+
+  const fallback = []
+  for (const [rawKey, entry] of Object.entries(record)) {
+    const normalizedKey = normalizeKey(rawKey)
+    if (NESTED_SKIP_KEYS.has(normalizedKey)) continue
+    fallback.push(...collectNestedTokens(entry, { priorityKeys, depth: depth + 1, maxDepth, maxTokens, seen }))
+    if (fallback.length >= maxTokens) break
+  }
+  return fallback
+}
+
+const toScalarField = (value, { mode = 'generic', depth = 0, maxDepth = 6 } = {}) => {
+  if (depth > maxDepth) return ''
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') {
+    const raw = value.replace(/\s+/g, ' ').trim()
+    if (!raw || /^\[object\s+object\]$/i.test(raw)) return ''
+    if (
+      (raw.startsWith('{') && raw.endsWith('}'))
+      || (raw.startsWith('[') && raw.endsWith(']'))
+    ) {
+      try {
+        const parsed = JSON.parse(raw)
+        return toScalarField(parsed, { mode, depth: depth + 1, maxDepth })
+      } catch (_error) {
+        // Keep malformed pseudo-JSON as plain text.
+      }
+    }
+    return raw
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+
+  if (mode === 'sender') {
+    const compositeSenderName = extractCompositeSenderName(value)
+    if (compositeSenderName) return compositeSenderName
+  }
+
+  const priorityKeys = mode === 'message'
+    ? NESTED_MESSAGE_PRIORITY_KEYS
+    : mode === 'sender'
+      ? NESTED_SENDER_PRIORITY_KEYS
+      : []
+  const tokens = collectNestedTokens(value, {
+    priorityKeys,
+    depth: depth + 1,
+    maxDepth,
+    maxTokens: mode === 'sender' ? 8 : 32
+  })
+  if (!tokens.length) return ''
+  const unique = []
+  const seen = new Set()
+  for (const token of tokens) {
+    const normalized = String(token || '').replace(/\s+/g, ' ').trim()
+    if (!normalized) continue
+    const key = normalized.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(normalized)
+    if (mode === 'sender') break
+    if (unique.length >= 24) break
+  }
+  if (!unique.length) return ''
+  return mode === 'sender' ? unique[0] : unique.join(' ')
+}
+
+const buildPersonLabel = (index = 0) => {
+  let value = Math.max(0, Number(index) || 0)
+  let label = ''
+  do {
+    label = String.fromCharCode(65 + (value % 26)) + label
+    value = Math.floor(value / 26) - 1
+  } while (value >= 0)
+  return `Person ${label}`
+}
+
+const toEpochMs = (numeric) => {
+  if (!Number.isFinite(numeric)) return null
+  const abs = Math.abs(numeric)
+  if (abs >= 1e18) return numeric / 1e6 // nanoseconds -> ms
+  if (abs >= 1e15) return numeric / 1e3 // microseconds -> ms
+  if (abs >= 1e12) return numeric // milliseconds
+  return numeric * 1000 // seconds
+}
+
+const parseLooseTimestamp = (value) => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const asMs = toEpochMs(value)
+    if (!Number.isFinite(asMs)) return ''
+    const parsed = new Date(asMs)
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : ''
+  }
+
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^-?\d{10,19}$/.test(text)) {
+    const numeric = Number(text)
+    if (Number.isFinite(numeric)) {
+      const asMs = toEpochMs(numeric)
+      if (!Number.isFinite(asMs)) return ''
+      const parsed = new Date(asMs)
+      if (Number.isFinite(parsed.getTime())) return parsed.toISOString()
+    }
+  }
+
+  const direct = new Date(text)
+  if (Number.isFinite(direct.getTime())) return direct.toISOString()
+  return ''
+}
+
+const escapeCsvField = (value) => {
+  const text = String(value ?? '')
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+  return text
+}
+
+const serializeRowsToCsv = (rows = []) => {
+  const lines = [MIRROR_VEIL_CSV_HEADERS.join(',')]
+  for (const row of rows) {
+    lines.push(MIRROR_VEIL_CSV_HEADERS.map((header) => escapeCsvField(row?.[header] || '')).join(','))
+  }
+  return lines.join('\n')
+}
+
+const looksLikeJson = (text = '', fileName = '') => /\.(json|jsonl|ndjson)$/i.test(fileName) || /^[\[{"]/.test(String(text || '').trim())
+const looksLikeCsv = (text = '', fileName = '') => {
+  if (/\.(csv|tsv)$/i.test(fileName)) return true
+  const lines = String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  if (lines.length < 2) return false
+
+  const sample = lines.slice(0, 80)
+  const strongChatPatternHits = sample.reduce((count, line) => {
+    for (const pattern of CHAT_LINE_PATTERNS) {
+      if (pattern.test(line)) return count + 1
+    }
+    return count
+  }, 0)
+  if (strongChatPatternHits >= Math.max(2, Math.ceil(sample.length * 0.45))) {
+    return false
+  }
+
+  return CSV_DELIMITER_CANDIDATES.some((delimiter) => (
+    sample[0].includes(delimiter) && sample[1].includes(delimiter)
+  ))
+}
+
+const parseCsvText = (text = '', delimiter = ',') => {
+  const rows = []
+  let row = []
+  let field = ''
+  let inQuotes = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const next = text[index + 1]
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        field += '"'
+        index += 1
+      } else if (char === '"') {
+        inQuotes = false
+      } else {
+        field += char
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inQuotes = true
+      continue
+    }
+    if (char === delimiter) {
+      row.push(field)
+      field = ''
+      continue
+    }
+    if (char === '\r') {
+      continue
+    }
+    if (char === '\n') {
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+      continue
+    }
+    field += char
+  }
+
+  if (field.length || row.length) {
+    row.push(field)
+    rows.push(row)
+  }
+
+  return rows.filter((candidate) => candidate.some((cell) => String(cell || '').trim()))
+}
+
+const extractField = (record = {}, keys = []) => {
+  for (const key of keys) {
+    if (record[key] !== undefined && record[key] !== null && record[key] !== '') {
+      return record[key]
+    }
+  }
+  return ''
+}
+
+const parseCsvRowsForDelimiter = (text = '', delimiter = ',') => {
+  const table = parseCsvText(String(text || ''), delimiter)
+  if (!table.length) return []
+
+  const inferHeaderlessRecords = (rawTable = []) => {
+    const sample = rawTable.slice(0, 300)
+    const columnCount = sample.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0)
+    if (columnCount < 2) return []
+
+    const stats = Array.from({ length: columnCount }, () => ({
+      nonEmpty: 0,
+      timestampHits: 0,
+      endpointHits: 0,
+      longTextHits: 0,
+      spacedHits: 0,
+    }))
+
+    for (const row of sample) {
+      for (let index = 0; index < columnCount; index += 1) {
+        const cell = String((row || [])[index] ?? '').replace(/\s+/g, ' ').trim()
+        if (!cell) continue
+        const column = stats[index]
+        column.nonEmpty += 1
+        if (parseLooseTimestamp(cell)) column.timestampHits += 1
+        if (ENDPOINT_EMAIL_RE.test(cell) || ENDPOINT_PHONEISH_RE.test(cell)) column.endpointHits += 1
+        if (cell.length >= 12) column.longTextHits += 1
+        if (/\s/.test(cell)) column.spacedHits += 1
+      }
+    }
+
+    const minCoverage = Math.max(2, Math.floor(sample.length * 0.2))
+    let messageIndex = -1
+    let bestMessageScore = -Infinity
+    let timestampIndex = -1
+    let bestTimestampScore = 0
+    let senderIndex = -1
+    let bestSenderScore = -Infinity
+
+    for (let index = 0; index < columnCount; index += 1) {
+      const column = stats[index]
+      if (column.nonEmpty < minCoverage) continue
+      if (column.timestampHits > bestTimestampScore) {
+        bestTimestampScore = column.timestampHits
+        timestampIndex = index
+      }
+      const messageScore = (
+        (column.longTextHits * 3) +
+        (column.spacedHits * 2) -
+        (column.timestampHits * 6) -
+        (column.endpointHits * 2)
+      )
+      if (messageScore > bestMessageScore) {
+        bestMessageScore = messageScore
+        messageIndex = index
+      }
+    }
+
+    if (timestampIndex >= 0 && bestTimestampScore < minCoverage) {
+      timestampIndex = -1
+    }
+
+    for (let index = 0; index < columnCount; index += 1) {
+      if (index === messageIndex || index === timestampIndex) continue
+      const column = stats[index]
+      if (column.nonEmpty < minCoverage) continue
+      const senderScore = (column.endpointHits * 3) + column.nonEmpty - (column.longTextHits * 2) - column.timestampHits
+      if (senderScore > bestSenderScore) {
+        bestSenderScore = senderScore
+        senderIndex = index
+      }
+    }
+
+    if (messageIndex < 0) return []
+
+    const records = []
+    for (const row of rawTable) {
+      const message = String((row || [])[messageIndex] ?? '').replace(/\s+/g, ' ').trim()
+      if (!message) continue
+      const senderRaw = String((row || [])[senderIndex] ?? '')
+      const sender = normalizeSenderLabel(senderRaw)
+      const timestamp = parseLooseTimestamp(String((row || [])[timestampIndex] ?? ''))
+      records.push({ timestamp, sender, senderRaw, message })
+    }
+    return records
+  }
+
+  const maybeHeaderRow = table[0] || []
+  const headers = maybeHeaderRow.map((header) => normalizeKey(header))
+  const hasMessageColumn = headers.some((header) => /(?:^|_)(message|text|content|body)(?:_|$)/.test(header))
+  if (!hasMessageColumn) {
+    return inferHeaderlessRecords(table)
+  }
+
+  if (table.length < 2) return []
+  table.shift()
+
+  const records = []
+  for (const values of table) {
+    const record = {}
+    headers.forEach((header, index) => {
+      record[header] = values[index] ?? ''
+    })
+
+    const message = String(extractField(record, ['message', 'text', 'content', 'body', 'message_text', 'message_body'])).trim()
+    if (!message) continue
+
+    const senderRaw = String(extractField(record, [
+      'sender', 'sender_name', 'sender_display_name', 'from', 'from_name', 'from_display_name',
+      'from_email', 'sender_email', 'from_phone', 'sender_phone', 'from_number', 'sender_number',
+      'speaker', 'author', 'author_name', 'participant', 'participant_name', 'contact', 'handle',
+      'email', 'phone', 'phone_number', 'number', 'address', 'name'
+    ]) ?? '')
+    const sender = normalizeSenderLabel(senderRaw)
+    const timestamp = parseLooseTimestamp(extractField(record, [
+      'timestamp', 'timestamp_ms', 'timestamp_us', 'timestamp_usec', 'datetime', 'date', 'time',
+      'created_at', 'sent_at', 'received_at', 'message_date', 'ts_ms', 'ts', 'unix_time'
+    ]))
+
+    records.push({
+      timestamp,
+      sender,
+      senderRaw,
+      message,
+    })
+  }
+
+  return records
+}
+
+const parseCsvRows = (text = '') => {
+  let bestRows = []
+  let bestScore = -1
+  const scoreCandidateRows = (rows = []) => {
+    let score = 0
+    for (const row of rows || []) {
+      if (String(row?.message || '').trim()) score += 4
+      if (String(row?.sender || '').trim() && String(row?.sender || '').trim().toLowerCase() !== 'unknown') score += 2
+      if (String(row?.timestamp || '').trim()) score += 1
+    }
+    return score
+  }
+  for (const delimiter of CSV_DELIMITER_CANDIDATES) {
+    const candidateRows = parseCsvRowsForDelimiter(text, delimiter)
+    const candidateScore = scoreCandidateRows(candidateRows)
+    if (
+      candidateScore > bestScore ||
+      (candidateScore === bestScore && candidateRows.length > bestRows.length)
+    ) {
+      bestScore = candidateScore
+      bestRows = candidateRows
+    }
+  }
+  return bestRows
+}
+
+const parseJsonRows = (text = '') => {
+  const MESSAGE_FIELD_RE = /(?:^|_)(message|text|content|body)(?:_|$)|^(messagetext|messagebody|bodytext|smsbody|contenttext)$/
+  const PARTICIPANT_FIELD_RE = /(?:^|_)(sender|from|recipient|to|author|participant|speaker|contact|name|phone|email|address)(?:_|$)|^(sendername|fromname|recipientname|toname|authorname|participantname|speakername|contactname)$/
+  const ROW_SHAPE_FIELD_RE = /(?:^|_)(message|text|content|body|timestamp|time|date|datetime|created_at|sent_at|sender|from|author|participant|speaker|name|email|phone)(?:_|$)|^(messagetext|messagebody|bodytext|smsbody|contenttext|sendername|fromname|authorname|participantname|speakername|contactname)$/
+  const looksLikeRowShape = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const normalizedKeys = Object.keys(value).map((key) => normalizeKey(key))
+    return normalizedKeys.some((key) => ROW_SHAPE_FIELD_RE.test(key))
+  }
+  const unwrapEnvelopeRow = (row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return null
+    if (looksLikeRowShape(row)) return row
+    const candidates = [
+      row.node,
+      row.message,
+      row.payload,
+      row.event,
+      row.entry,
+      row.record,
+      row,
+    ]
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+        return candidate
+      }
+    }
+    return null
+  }
+  const asObjectRows = (value) => {
+    if (!Array.isArray(value)) return []
+    const rows = []
+    for (const row of value) {
+      const unwrapped = unwrapEnvelopeRow(row)
+      if (unwrapped) rows.push(unwrapped)
+    }
+    return rows
+  }
+  const looksLikeMessageRow = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const normalizedKeys = Object.keys(value).map((key) => normalizeKey(key))
+    const hasMessageField = normalizedKeys.some((key) => MESSAGE_FIELD_RE.test(key))
+    if (!hasMessageField) return false
+    return normalizedKeys.some((key) => PARTICIPANT_FIELD_RE.test(key))
+  }
+  const asObjectMapRows = (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+    const entries = Object.entries(value)
+    if (!entries.length || entries.length > 50000) return []
+    const rows = []
+    const hasStrongMessageSignals = (row = {}) => {
+      const normalizedKeys = Object.keys(row || {}).map((key) => normalizeKey(key))
+      return normalizedKeys.some((key) => (
+        /(?:^|_)(timestamp|time|date|datetime|created_at|sent_at|direction|message_direction|type|kind)(?:_|$)/
+      ).test(key))
+    }
+    const metadataKeys = new Set([
+      'meta', 'metadata', 'summary', 'stats', 'counts', 'totals', 'config',
+      'settings', 'owner', 'owners', 'participant', 'participants', 'profile', 'profiles',
+      'user', 'users', 'header', 'headers'
+    ])
+    for (const [rawKey, rawEntry] of entries) {
+      const normalizedKey = normalizeKey(rawKey)
+      let entry = rawEntry
+      if (typeof entry === 'string') {
+        try {
+          const parsed = parseJsonLenient(unwrapJsonFence(entry) || entry)
+          if (Array.isArray(parsed)) {
+            const nestedRows = parsed.filter((candidate) => looksLikeMessageRow(candidate))
+            if (nestedRows.length) {
+              rows.push(...nestedRows)
+              continue
+            }
+          }
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && looksLikeMessageRow(parsed)) {
+            rows.push(parsed)
+            continue
+          }
+        } catch (_error) {
+          // Fall through to metadata/non-row handling.
+        }
+      }
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        continue
+      }
+      if (looksLikeMessageRow(entry)) {
+        rows.push(entry)
+        continue
+      }
+      if (metadataKeys.has(normalizedKey)) {
+        continue
+      }
+    }
+    if (!rows.length) return []
+    if (rows.length === 1 && entries.length > 1 && !hasStrongMessageSignals(rows[0])) return []
+    return rows
+  }
+  const unwrapJsonFence = (value = '') => {
+    let output = String(value || '').replace(/^\uFEFF/, '').trim()
+    const fenceMatch = output.match(/^```(?:json|jsonl|ndjson|javascript|js|txt)?\s*([\s\S]*?)\s*```$/i)
+    if (fenceMatch) {
+      output = String(fenceMatch[1] || '').replace(/^\uFEFF/, '').trim()
+    }
+    return output
+  }
+  const splitLineDelimitedJsonRows = (raw = '', maxLines = MIRROR_VEIL_MAX_LINE_DELIMITED_JSON_ROWS) => {
+    const text = String(raw || '')
+    const lines = []
+    let start = 0
+    for (let index = 0; index <= text.length; index += 1) {
+      const atEnd = index === text.length
+      const char = atEnd ? '' : text[index]
+      if (!atEnd && char !== '\n' && char !== '\r') continue
+      const line = unwrapJsonFence(text.slice(start, index))
+      if (line) {
+        lines.push(line)
+        if (lines.length >= maxLines) break
+      }
+      if (!atEnd && char === '\r' && text[index + 1] === '\n') index += 1
+      start = index + 1
+    }
+    return lines
+  }
+  const stripJsonComments = (value = '') => {
+    const input = String(value || '')
+    let output = ''
+    let inString = false
+    let escaped = false
+    let inLineComment = false
+    let inBlockComment = false
+    for (let index = 0; index < input.length; index += 1) {
+      const char = input[index]
+      const next = index + 1 < input.length ? input[index + 1] : ''
+      if (inLineComment) {
+        if (char === '\n') {
+          inLineComment = false
+          output += char
+        }
+        continue
+      }
+      if (inBlockComment) {
+        if (char === '\n') output += char
+        if (char === '*' && next === '/') {
+          inBlockComment = false
+          index += 1
+        }
+        continue
+      }
+      if (inString) {
+        output += char
+        if (escaped) {
+          escaped = false
+          continue
+        }
+        if (char === '\\') {
+          escaped = true
+          continue
+        }
+        if (char === '"') {
+          inString = false
+        }
+        continue
+      }
+      if (char === '"') {
+        inString = true
+        output += char
+        continue
+      }
+      if (char === '/' && next === '/') {
+        inLineComment = true
+        index += 1
+        continue
+      }
+      if (char === '/' && next === '*') {
+        inBlockComment = true
+        index += 1
+        continue
+      }
+      output += char
+    }
+    return output
+  }
+  const stripJsonTrailingCommas = (value = '') => {
+    const input = String(value || '')
+    let output = ''
+    let inString = false
+    let escaped = false
+    for (let index = 0; index < input.length; index += 1) {
+      const char = input[index]
+      if (inString) {
+        output += char
+        if (escaped) {
+          escaped = false
+          continue
+        }
+        if (char === '\\') {
+          escaped = true
+          continue
+        }
+        if (char === '"') {
+          inString = false
+        }
+        continue
+      }
+      if (char === '"') {
+        inString = true
+        output += char
+        continue
+      }
+      if (char === ',') {
+        let cursor = index + 1
+        while (cursor < input.length && /\s/.test(input[cursor])) cursor += 1
+        const next = cursor < input.length ? input[cursor] : ''
+        if (next === '}' || next === ']') {
+          continue
+        }
+      }
+      output += char
+    }
+    return output
+  }
+  const parseJsonLenient = (value = '') => {
+    const raw = String(value || '').trim()
+    if (!raw) throw new Error('empty json payload')
+    try {
+      return JSON.parse(raw)
+    } catch (_error) {
+      const sanitized = stripJsonTrailingCommas(stripJsonComments(raw)).trim()
+      if (!sanitized || sanitized === raw) throw _error
+      return JSON.parse(sanitized)
+    }
+  }
+  const parseLineDelimitedJsonRows = (raw = '') => {
+    const lines = splitLineDelimitedJsonRows(raw)
+    if (!lines.length) return []
+    const rows = []
+    for (const line of lines) {
+      if (!line.startsWith('{') && !line.startsWith('[') && !line.startsWith('"')) continue
+      const sanitizedLine = line.replace(/,\s*$/, '')
+      try {
+        const parsed = parseJsonLenient(sanitizedLine)
+        if (typeof parsed === 'string') {
+          const parsedNested = parseJsonFragment(parsed)
+          if (parsedNested !== null) {
+            if (Array.isArray(parsedNested)) {
+              rows.push(...asObjectRows(parsedNested))
+              continue
+            }
+            if (parsedNested && typeof parsedNested === 'object') {
+              const nestedMappedRows = asObjectMapRows(parsedNested)
+              if (nestedMappedRows.length) {
+                rows.push(...nestedMappedRows)
+                continue
+              }
+              rows.push(parsedNested)
+              continue
+            }
+          }
+        }
+        if (Array.isArray(parsed)) {
+          rows.push(...asObjectRows(parsed))
+        } else if (parsed && typeof parsed === 'object') {
+          const mappedRows = asObjectMapRows(parsed)
+          if (mappedRows.length) {
+            rows.push(...mappedRows)
+            continue
+          }
+          rows.push(parsed)
+        }
+      } catch (_error) {
+        // Skip malformed rows but keep parsing subsequent NDJSON lines.
+        continue
+      }
+    }
+    return asObjectRows(rows)
+  }
+  const parseJsonFragment = (value, depth = 0) => {
+    if (typeof value !== 'string') return null
+    const trimmed = unwrapJsonFence(value)
+    if (!trimmed) return null
+    const startsLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('"')
+    if (!startsLikeJson) return null
+    try {
+      const parsed = parseJsonLenient(trimmed)
+      if (typeof parsed === 'string' && depth < 2) {
+        const reparsed = parseJsonFragment(parsed, depth + 1)
+        if (reparsed !== null) return reparsed
+      }
+      return parsed
+    } catch (_error) {
+      const ndjsonRows = parseLineDelimitedJsonRows(trimmed)
+      return ndjsonRows.length ? ndjsonRows : null
+    }
+  }
+  const parseNdjsonPayload = (raw = '') => {
+    return parseLineDelimitedJsonRows(raw)
+  }
+  const resolveObjectKey = (record = {}, key = '') => {
+    if (!record || typeof record !== 'object') return undefined
+    if (Object.prototype.hasOwnProperty.call(record, key)) return record[key]
+    const normalizedTarget = normalizeKey(key)
+    for (const [candidateKey, candidateValue] of Object.entries(record)) {
+      if (normalizeKey(candidateKey) === normalizedTarget) return candidateValue
+    }
+    return undefined
+  }
+  const pullCollection = (payload, depth = 0) => {
+    if (Array.isArray(payload)) return asObjectRows(payload)
+    if (!payload || typeof payload !== 'object') return []
+    const objectPayload = payload
+
+    const directArrayKeys = [
+      'messages', 'message_list', 'messageList', 'chat_messages', 'chatMessages',
+      'conversation_messages', 'conversationMessages',
+      'data', 'conversation', 'results', 'rows', 'items', 'records', 'entries', 'events'
+    ]
+    for (const key of directArrayKeys) {
+      const value = resolveObjectKey(objectPayload, key)
+      if (Array.isArray(value)) {
+        const rows = asObjectRows(value)
+        if (rows.length) return rows
+      }
+      const mappedRows = asObjectMapRows(value)
+      if (mappedRows.length) return mappedRows
+    }
+
+    const nestedArrayPaths = [
+      ['conversation', 'messages'],
+      ['conversation', 'messages', 'edges'],
+      ['thread', 'messages'],
+      ['thread', 'messages', 'edges'],
+      ['chat', 'messages'],
+      ['chat', 'messages', 'edges'],
+      ['chat', 'message_list'],
+      ['chat', 'chat_messages'],
+      ['payload', 'messages'],
+      ['payload', 'message_list'],
+      ['payload', 'chat_messages'],
+      ['result', 'messages'],
+      ['export', 'messages'],
+      ['dataset', 'rows'],
+      ['transcript', 'messages'],
+    ]
+    for (const path of nestedArrayPaths) {
+      let cursor = objectPayload
+      let valid = true
+      for (const key of path) {
+        if (!cursor || typeof cursor !== 'object') {
+          valid = false
+          break
+        }
+        cursor = resolveObjectKey(cursor, key)
+      }
+      if (!valid) continue
+      const rows = asObjectRows(cursor)
+      if (rows.length) return rows
+      const mappedRows = asObjectMapRows(cursor)
+      if (mappedRows.length) return mappedRows
+    }
+
+    if (depth >= 2) return []
+    const nestedContainerKeys = ['payload', 'result', 'results', 'data', 'export', 'dataset', 'conversation', 'thread', 'chat']
+    for (const key of nestedContainerKeys) {
+      const nestedValue = resolveObjectKey(objectPayload, key)
+      const parsedNested = parseJsonFragment(nestedValue)
+      if (parsedNested !== null) {
+        const rows = pullCollection(parsedNested, depth + 1)
+        if (rows.length) return rows
+        continue
+      }
+      if (nestedValue && typeof nestedValue === 'object' && !Array.isArray(nestedValue)) {
+        const rows = pullCollection(nestedValue, depth + 1)
+        if (rows.length) return rows
+      }
+    }
+
+    const normalizedKeys = Object.keys(objectPayload || {}).map((key) => normalizeKey(key))
+    const hasDirectMessageField = normalizedKeys.some((key) => (
+      /(?:^|_)(message|text|content|body)(?:_|$)/.test(key)
+    ))
+    if (hasDirectMessageField) return [objectPayload]
+    const mappedRows = asObjectMapRows(objectPayload)
+    if (mappedRows.length) return mappedRows
+
+    return []
+  }
+
+  let parsed
+  const jsonCandidate = unwrapJsonFence(text)
+  try {
+    parsed = parseJsonLenient(jsonCandidate)
+    if (typeof parsed === 'string') {
+      const reparsed = parseJsonFragment(parsed)
+      if (reparsed !== null) parsed = reparsed
+    }
+  } catch (_error) {
+    const ndjsonRows = parseNdjsonPayload(jsonCandidate || text)
+    if (ndjsonRows.length) {
+      const flattenedNdjsonRows = []
+      for (const row of ndjsonRows) {
+        const pulledRows = pullCollection(row)
+        if (pulledRows.length) {
+          flattenedNdjsonRows.push(...pulledRows)
+        }
+      }
+      parsed = flattenedNdjsonRows.length ? flattenedNdjsonRows : ndjsonRows
+    } else {
+      return []
+    }
+  }
+
+  const collection = pullCollection(parsed)
+
+  const rows = []
+  for (const item of collection) {
+    if (!item || typeof item !== 'object') continue
+    const normalized = {}
+    Object.entries(item).forEach(([key, value]) => {
+      normalized[normalizeKey(key)] = value
+    })
+    const message = toScalarField(
+      extractField(normalized, ['message', 'message_text', 'message_body', 'text', 'content', 'body', 'body_text']),
+      { mode: 'message' }
+    )
+    if (!message) continue
+    rows.push({
+      timestamp: parseLooseTimestamp(extractField(normalized, [
+        'timestamp', 'timestamp_ms', 'timestamp_us', 'timestamp_usec', 'datetime', 'date', 'time',
+        'created_at', 'sent_at', 'received_at', 'message_date', 'ts_ms', 'ts', 'unix_time'
+      ])),
+      sender: normalizeSenderLabel(toScalarField(extractField(normalized, [
+        'sender', 'sender_name', 'sender_display_name', 'from', 'from_name', 'from_display_name',
+        'from_email', 'sender_email', 'from_phone', 'sender_phone', 'from_number', 'sender_number',
+        'speaker', 'author', 'author_name', 'participant', 'participant_name', 'contact', 'handle',
+        'email', 'phone', 'phone_number', 'number', 'address', 'name'
+      ]), { mode: 'sender' })),
+      senderRaw: String(extractField(normalized, [
+        'sender', 'sender_name', 'sender_display_name', 'from', 'from_name', 'from_display_name',
+        'from_email', 'sender_email', 'from_phone', 'sender_phone', 'from_number', 'sender_number',
+        'speaker', 'author', 'author_name', 'participant', 'participant_name', 'contact', 'handle',
+        'email', 'phone', 'phone_number', 'number', 'address', 'name'
+      ]) ?? ''),
+      message,
+    })
+  }
+
+  return rows
+}
+
+const parseChatRows = (text = '') => {
+  const rows = []
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n')
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+    if (CHAT_EXPORT_METADATA_RE.test(line)) continue
+
+    let matched = null
+    for (const pattern of CHAT_LINE_PATTERNS) {
+      const candidate = line.match(pattern)
+      if (candidate?.groups) {
+        matched = candidate.groups
+        break
+      }
+    }
+
+    if (matched) {
+      const senderRaw = String(matched.sender || '').trim()
+      let sender = normalizeSenderLabel(senderRaw)
+      let message = String(matched.message || '').trim()
+      if (DIRECTIONAL_SENDER_ONLY_RE.test(senderRaw) || DIRECTIONAL_SENDER_ONLY_RE.test(sender)) {
+        const nestedSenderMatch = message.match(NESTED_DIRECTIONAL_SENDER_RE)
+        if (nestedSenderMatch) {
+          sender = normalizeSenderLabel(nestedSenderMatch[1] || '')
+          message = String(nestedSenderMatch[2] || '').trim()
+        }
+      }
+      rows.push({
+        timestamp: parseLooseTimestamp(matched.timestamp || ''),
+        sender,
+        message,
+      })
+      continue
+    }
+
+    if (rows.length > 0) {
+      rows[rows.length - 1].message = `${rows[rows.length - 1].message}\n${line}`.trim()
+      continue
+    }
+
+    rows.push({
+      timestamp: '',
+      sender: 'Unknown',
+      message: line,
+    })
+  }
+
+  return rows.filter((row) => row.message)
+}
+
+const parseMirrorVeilInput = (input = '', { fileName = '' } = {}) => {
+  const text = String(input || '')
+  if (!text.trim()) {
+    throw new Error('Choose a file or paste a conversation before running Mirror Veil.')
+  }
+
+  const normalizedFileName = String(fileName || '').trim()
+  const parserCandidates = [
+    looksLikeJson(text, normalizedFileName) ? parseJsonRows(text) : [],
+    looksLikeCsv(text, normalizedFileName) ? parseCsvRows(text) : [],
+    parseChatRows(text),
+  ]
+
+  const rows = parserCandidates.find((candidate) => Array.isArray(candidate) && candidate.length > 0) || []
+  if (rows.length === 0) {
+    throw new Error('Mirror Veil could not find any messages in that export. Use CSV, JSON, or a timestamped text export.')
+  }
+
+  return rows.map((row) => ({
+    timestamp: parseLooseTimestamp(row.timestamp),
+    sender: normalizeSenderLabel(row.sender),
+    // The raw sender still carries the endpoint that normalizeSenderLabel strips
+    // (`Mike <555-123-4567>`). Identity resolution needs it to link that number
+    // to Mike, so keep it instead of discarding it.
+    senderRaw: String(row.senderRaw ?? row.sender ?? '').trim(),
+    message: String(row.message || '').trim(),
+  })).filter((row) => row.message)
+}
+
+const assignNameToken = (registry, value) => {
+  const key = normalizeEntityKey(value)
+  if (!key || GENERIC_SENDER_LABELS.has(key)) return ''
+  if (!registry.has(key)) {
+    // Count distinct tokens, not registry entries: nickname aliases share an
+    // existing person's token and must never consume a new label.
+    registry.set(key, buildPersonLabel(new Set(registry.values()).size))
+  }
+  return registry.get(key)
+}
+
+// Maps a normalized identifier to the person token that owns it. An identifier
+// seen for two different people is ambiguous and gets dropped, so it falls back
+// to a generic token rather than silently merging two people.
+const AMBIGUOUS = Symbol('ambiguous')
+
+const normalizeIdentifier = (kind, raw) => {
+  const value = String(raw || '').trim()
+  if (!value) return ''
+  if (kind === 'phone') {
+    const digits = value.replace(/\D/g, '')
+    return digits.length >= 10 ? digits.slice(-10) : ''
+  }
+  return value.toLowerCase().replace(/^@/, '')
+}
+
+const linkIdentifier = (identifiers, kind, raw, personToken) => {
+  const key = normalizeIdentifier(kind, raw)
+  if (!key || !personToken) return
+  const mapKey = `${kind}:${key}`
+  const existing = identifiers.get(mapKey)
+  if (existing === undefined) {
+    identifiers.set(mapKey, personToken)
+    return
+  }
+  if (existing !== personToken) identifiers.set(mapKey, AMBIGUOUS)
+}
+
+const compileIdentifierRegistry = (rows = [], nameRegistry = new Map()) => {
+  const identifiers = new Map()
+
+  for (const row of rows) {
+    const personToken = assignNameToken(nameRegistry, row.sender)
+    if (!personToken) continue
+
+    const sender = `${String(row.senderRaw || '')} ${String(row.sender || '')}`
+    for (const match of sender.match(EMAIL_PATTERN) || []) {
+      linkIdentifier(identifiers, 'email', match, personToken)
+    }
+    for (const match of sender.match(PHONE_PATTERN) || []) {
+      linkIdentifier(identifiers, 'phone', match, personToken)
+    }
+    for (const match of sender.match(HANDLE_PATTERN) || []) {
+      linkIdentifier(identifiers, 'handle', match.trim(), personToken)
+    }
+  }
+
+  for (const [key, value] of Array.from(identifiers.entries())) {
+    if (value === AMBIGUOUS) identifiers.delete(key)
+  }
+  return identifiers
+}
+
+const redactLinkedIdentifiers = (value = '', identifiers = new Map()) => {
+  let next = String(value || '')
+  const counts = { emails: 0, phones: 0, handles: 0 }
+  if (identifiers.size === 0) return { value: next, counts }
+
+  for (const [kind, pattern, label, bucket] of [
+    ['email', EMAIL_PATTERN, 'email', 'emails'],
+    ['phone', PHONE_PATTERN, 'phone', 'phones'],
+    ['handle', HANDLE_PATTERN, 'handle', 'handles'],
+  ]) {
+    next = next.replace(pattern, (matched, maybePrefix) => {
+      const owner = identifiers.get(`${kind}:${normalizeIdentifier(kind, matched)}`)
+      if (!owner) return matched
+      counts[bucket] += 1
+      const token = `[${owner} ${label}]`
+      return kind === 'handle' && typeof maybePrefix === 'string' ? `${maybePrefix}${token}` : token
+    })
+  }
+
+  return { value: next, counts }
+}
+
+const compileNameRegistry = (rows = [], options = MIRROR_VEIL_DEFAULT_OPTIONS) => {
+  const registry = new Map()
+  if (!options.redactNames) return registry
+
+  for (const row of rows) {
+    assignNameToken(registry, row.sender)
+  }
+
+  for (const customName of options.customNames || []) {
+    assignNameToken(registry, customName)
+  }
+
+  // Alias entries reuse the person token their base name already received, and
+  // run last so an explicit custom name always wins over a derived nickname.
+  for (const [key, token] of Array.from(registry.entries())) {
+    const firstWord = String(key).split(/\s+/)[0]
+    for (const alias of buildNicknameAliases(firstWord)) {
+      if (!registry.has(alias)) registry.set(alias, token)
+    }
+  }
+  return registry
+}
+
+const replaceWithCount = (value, pattern, replacement) => {
+  let count = 0
+  const next = String(value || '').replace(pattern, (...args) => {
+    const maybePrefix = args[1]
+    count += 1
+    if (typeof maybePrefix === 'string' && pattern === HANDLE_PATTERN) {
+      return `${maybePrefix}${replacement}`
+    }
+    return replacement
+  })
+  return { value: next, count }
+}
+
+const luhnCheck = (digits = '') => {
+  const cleaned = String(digits || '').replace(/\D/g, '')
+  if (cleaned.length < 13 || cleaned.length > 19) return false
+  let sum = 0
+  let shouldDouble = false
+  for (let index = cleaned.length - 1; index >= 0; index -= 1) {
+    let digit = Number(cleaned[index])
+    if (shouldDouble) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+    sum += digit
+    shouldDouble = !shouldDouble
+  }
+  return sum % 10 === 0
+}
+
+const redactCreditCards = (value = '') => String(value || '').replace(/\b(?:\d[ -]*?){13,19}\b/g, (match) => (
+  luhnCheck(match) ? '[CARD]' : match
+))
+
+// Deliberately narrow. General name knowledge is unbounded, so only three rules
+// apply and anything outside them degrades safely to no link at all — a missed
+// nickname is a leak the user can catch, a wrong link silently merges two people.
+const DIMINUTIVE_SUFFIXES = ['y', 'ie', 'o']
+const DIMINUTIVE_TABLE = new Map([
+  ['robert', ['bob', 'rob', 'bobby', 'robbie']],
+  ['william', ['bill', 'will', 'billy', 'willie']],
+  ['margaret', ['peggy', 'maggie', 'meg']],
+  ['richard', ['rick', 'ricky', 'richie']],
+  ['elizabeth', ['liz', 'beth', 'lizzy', 'betsy']],
+  ['james', ['jim', 'jimmy', 'jamie']],
+  ['joseph', ['joe', 'joey']],
+  ['katherine', ['kate', 'katie', 'kathy']],
+  ['michael', ['mike', 'mikey', 'mick']],
+  ['jennifer', ['jen', 'jenny']],
+  ['thomas', ['tom', 'tommy']],
+  ['charles', ['charlie', 'chuck']],
+  ['daniel', ['dan', 'danny']],
+  ['matthew', ['matt', 'matty']],
+  ['anthony', ['tony']],
+  ['christopher', ['chris']],
+])
+
+const buildNicknameAliases = (name = '') => {
+  const base = String(name || '').trim().toLowerCase()
+  const aliases = new Set()
+  if (base.length < 3 || !/^[a-z]+$/.test(base)) return aliases
+
+  for (const suffix of DIMINUTIVE_SUFFIXES) {
+    aliases.add(`${base}${suffix}`)
+    if (base.endsWith('e')) aliases.add(`${base.slice(0, -1)}${suffix}`)
+  }
+  for (const alias of DIMINUTIVE_TABLE.get(base) || []) aliases.add(alias)
+
+  aliases.delete(base)
+  return aliases
+}
+
+const redactNamesInText = (value = '', registry = new Map()) => {
+  let next = String(value || '')
+  let replacements = 0
+  const nameEntries = Array.from(registry.entries())
+    .map(([key, token]) => ({ key, token, raw: escapeRegExp(key).replace(/\s+/g, '\\s+') }))
+    .sort((left, right) => right.key.length - left.key.length)
+
+  for (const entry of nameEntries) {
+    const pattern = new RegExp(`\\b${entry.raw}\\b`, 'gi')
+    const result = replaceWithCount(next, pattern, entry.token)
+    next = result.value
+    replacements += result.count
+  }
+
+  return { value: next, count: replacements }
+}
+
+const emptyCounts = () => ({ names: 0, emails: 0, phones: 0, addresses: 0, cards: 0, urls: 0, handles: 0 })
+
+const applyTextRedactions = (value = '', options = MIRROR_VEIL_DEFAULT_OPTIONS, registry = new Map(), identifiers = new Map()) => {
+  let next = String(value || '')
+  const counts = emptyCounts()
+
+  // Structured identifiers are resolved before free-text names. Names last, or
+  // name redaction rewrites the local part of mike@example.com and leaves the
+  // mangled "Person [EMAIL]" behind.
+  if (options.redactNames) {
+    const linked = redactLinkedIdentifiers(next, identifiers)
+    next = linked.value
+    counts.emails += linked.counts.emails
+    counts.phones += linked.counts.phones
+    counts.handles += linked.counts.handles
+  }
+  if (options.redactEmails) {
+    const result = replaceWithCount(next, EMAIL_PATTERN, '[EMAIL]')
+    next = result.value
+    counts.emails += result.count
+  }
+  if (options.redactPhones) {
+    const result = replaceWithCount(next, PHONE_PATTERN, '[PHONE]')
+    next = result.value
+    counts.phones += result.count
+  }
+  if (options.redactAddresses) {
+    const result = replaceWithCount(next, ADDRESS_PATTERN, '[ADDRESS]')
+    next = result.value
+    counts.addresses += result.count
+  }
+  if (options.redactCreditCards) {
+    const before = next
+    next = redactCreditCards(next)
+    if (before !== next) {
+      counts.cards += (before.match(/\b(?:\d[ -]*?){13,19}\b/g) || []).filter(luhnCheck).length
+    }
+  }
+  if (options.redactUrls) {
+    const urlResult = replaceWithCount(next, URL_PATTERN, '[URL]')
+    next = urlResult.value
+    counts.urls += urlResult.count
+    const handleResult = replaceWithCount(next, HANDLE_PATTERN, '[HANDLE]')
+    next = handleResult.value
+    counts.handles += handleResult.count
+  }
+
+  if (options.redactNames) {
+    const result = redactNamesInText(next, registry)
+    next = result.value
+    counts.names += result.count
+  }
+
+  const count = Object.values(counts).reduce((total, item) => total + item, 0)
+  return { value: next, count, counts }
+}
+
+const runMirrorVeil = (input = '', { fileName = '', options = {} } = {}) => {
+  const rows = parseMirrorVeilInput(input, { fileName })
+  const resolvedOptions = cloneOptions(options)
+  const nameRegistry = compileNameRegistry(rows, resolvedOptions)
+  const identifierRegistry = resolvedOptions.redactNames
+    ? compileIdentifierRegistry(rows, nameRegistry)
+    : new Map()
+  let redactionsApplied = 0
+  const totals = emptyCounts()
+
+  const nextRows = rows.map((row) => {
+    if (!resolvedOptions.enabled) {
+      return {
+        timestamp: row.timestamp,
+        sender: row.sender,
+        message: row.message,
+      }
+    }
+
+    const senderToken = resolvedOptions.redactNames ? assignNameToken(nameRegistry, row.sender) : ''
+    const sender = senderToken || row.sender
+    const messageResult = applyTextRedactions(row.message, resolvedOptions, nameRegistry, identifierRegistry)
+    redactionsApplied += messageResult.count
+    for (const key of Object.keys(totals)) totals[key] += messageResult.counts[key]
+
+    return {
+      timestamp: row.timestamp,
+      sender,
+      message: messageResult.value,
+    }
+  })
+
+  const csv = serializeRowsToCsv(nextRows)
+  return {
+    rows: nextRows,
+    csv,
+    options: resolvedOptions,
+    nameMap: Object.fromEntries(nameRegistry.entries()),
+    stats: {
+      inputRows: rows.length,
+      outputRows: nextRows.length,
+      redactionsApplied: resolvedOptions.enabled ? redactionsApplied : 0,
+      counts: resolvedOptions.enabled ? totals : emptyCounts(),
+    },
+  }
+}
+
+const RECEIPT_ROWS = [
+  ['names', 'names'],
+  ['emails', 'emails'],
+  ['phones', 'phones'],
+  ['addresses', 'addresses'],
+  ['cards', 'cards'],
+  ['urls', 'urls'],
+  ['handles', 'handles'],
+]
+
+const buildMirrorVeilReceipt = async ({ input = '', result = null, now = new Date().toISOString() } = {}) => {
+  const counts = result?.stats?.counts || {}
+  const people = Object.keys(result?.nameMap || {}).length
+  const [inputHash, outputHash] = await Promise.all([
+    sha256Hex(input),
+    sha256Hex(result?.csv || ''),
+  ])
+
+  return [
+    'MIRROR VEIL RECEIPT',
+    '',
+    `  tool             ${MIRROR_VEIL_NAME} ${MIRROR_VEIL_DOWNLOAD_VERSION}`,
+    `  processed        ${now}`,
+    `  input  sha256    ${inputHash}`,
+    `  output sha256    ${outputHash}`,
+    '',
+    '  REMOVED',
+    ...RECEIPT_ROWS.map(([label, key]) => `  ${label.padEnd(14)} ${String(counts[key] ?? 0)}`),
+    '',
+    `  people resolved  ${people}`,
+    '',
+    '  This receipt records what the tool removed. It is not a guarantee of',
+    '  anonymity: context can still identify people. Review before sharing.',
+    '',
+    '  No content left this device.',
+  ].join('\n')
+}
+
+const formatTimestampForPreview = (value = '') => String(value || '').replace('.000Z', 'Z') || 'Missing'
+const escapeHtml = (value = '') => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const renderPreviewTable = (rows = []) => {
+  const previewRows = rows.slice(0, 8)
+  if (previewRows.length === 0) {
+    return '<p class="mv-empty">No preview rows yet.</p>'
+  }
+
+  const body = previewRows.map((row) => `
+    <tr>
+      <td>${escapeHtml(formatTimestampForPreview(row.timestamp))}</td>
+      <td>${escapeHtml(row.sender)}</td>
+      <td>${escapeHtml(row.message)}</td>
+    </tr>`).join('')
+
+  return `
+    <table class="mv-preview-table">
+      <thead>
+        <tr><th>Timestamp</th><th>Sender</th><th>Message</th></tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>`
+}
+
+const setStatus = (node, message, tone = 'neutral') => {
+  if (!node) return
+  node.textContent = message
+  node.dataset.tone = tone
+}
+
+const toggleRedactionControls = (root, enabled) => {
+  root.querySelectorAll('[data-mv-redaction-option="true"]').forEach((node) => {
+    node.disabled = !enabled
+  })
+}
+
+const collectOptionsFromDom = (root) => ({
+  enabled: root.querySelector('#mv-enable-redaction')?.checked !== false,
+  redactNames: root.querySelector('#mv-redact-names')?.checked !== false,
+  redactEmails: root.querySelector('#mv-redact-emails')?.checked !== false,
+  redactPhones: root.querySelector('#mv-redact-phones')?.checked !== false,
+  redactAddresses: root.querySelector('#mv-redact-addresses')?.checked !== false,
+  redactCreditCards: root.querySelector('#mv-redact-cards')?.checked !== false,
+  redactUrls: root.querySelector('#mv-redact-urls')?.checked === true,
+  customNames: root.querySelector('#mv-custom-names')?.value || '',
+})
+
+const resolveInputSource = async (root) => {
+  const fileInput = root.querySelector('#mv-file')
+  const pasteInput = root.querySelector('#mv-paste')
+  const file = fileInput?.files?.[0] || null
+  const pasted = String(pasteInput?.value || '').trim()
+
+  if (file) {
+    return {
+      fileName: file.name || '',
+      rawText: await file.text(),
+      sourceLabel: file.name || 'local file',
+    }
+  }
+  if (pasted) {
+    return {
+      fileName: 'pasted-thread.txt',
+      rawText: pasted,
+      sourceLabel: 'pasted text',
+    }
+  }
+  throw new Error('Choose a file or paste a conversation export first.')
+}
+
+const renderStats = (root, result, sourceLabel) => {
+  const statsNode = root.querySelector('#mv-stats')
+  if (!statsNode) return
+  const modeLabel = result.options.enabled ? 'Redaction on' : 'Redaction off'
+  statsNode.innerHTML = `
+    <div class="mv-stat"><span>Source</span><strong>${escapeHtml(sourceLabel)}</strong></div>
+    <div class="mv-stat"><span>Rows</span><strong>${result.stats.outputRows}</strong></div>
+    <div class="mv-stat"><span>Mode</span><strong>${escapeHtml(modeLabel)}</strong></div>
+    <div class="mv-stat"><span>Replacements</span><strong>${result.stats.redactionsApplied}</strong></div>`
+}
+
+const wireDownload = (root, result) => {
+  const downloadLink = root.querySelector('#mv-download')
+  if (!downloadLink) return
+  const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8' })
+  const previousUrl = downloadLink.dataset.objectUrl
+  if (previousUrl) {
+    URL.revokeObjectURL(previousUrl)
+  }
+  const objectUrl = URL.createObjectURL(blob)
+  downloadLink.href = objectUrl
+  downloadLink.download = 'grey-mirror-clean.csv'
+  downloadLink.dataset.objectUrl = objectUrl
+  downloadLink.hidden = false
+}
+
+const wireReceiptDownload = (root, receiptText) => {
+  const link = root.querySelector('#mv-receipt-download')
+  if (!link) return
+  const blob = new Blob([receiptText], { type: 'text/plain;charset=utf-8' })
+  const previousUrl = link.dataset.objectUrl
+  if (previousUrl) {
+    URL.revokeObjectURL(previousUrl)
+  }
+  const objectUrl = URL.createObjectURL(blob)
+  link.href = objectUrl
+  link.download = 'mirrorveil-receipt.txt'
+  link.dataset.objectUrl = objectUrl
+  link.hidden = false
+}
+
+const renderContract = (root) => {
+  const node = root.querySelector('#mv-contract')
+  if (!node) return
+  const column = (title, items) => `
+    <div>
+      <h3>${escapeHtml(title)}</h3>
+      <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+    </div>`
+  node.innerHTML = column('What it removes', MIRROR_VEIL_CONTRACT.removed) +
+    column('What it keeps', MIRROR_VEIL_CONTRACT.preserved)
+}
+
+const bootMirrorVeil = (root = document) => {
+  const form = root.querySelector('#mv-form')
+  if (!form) return
+
+  const statusNode = root.querySelector('#mv-status')
+  const previewNode = root.querySelector('#mv-preview')
+  const receiptNode = root.querySelector('#mv-receipt')
+  const enableToggle = root.querySelector('#mv-enable-redaction')
+
+  renderContract(root)
+
+  if (enableToggle) {
+    toggleRedactionControls(root, enableToggle.checked)
+    enableToggle.addEventListener('change', (event) => {
+      toggleRedactionControls(root, event.currentTarget.checked)
+    })
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    setStatus(statusNode, 'Processing locally on this device…')
+
+    try {
+      const source = await resolveInputSource(root)
+      const options = collectOptionsFromDom(root)
+      const result = runMirrorVeil(source.rawText, {
+        fileName: source.fileName,
+        options,
+      })
+
+      renderStats(root, result, source.sourceLabel)
+      if (previewNode) {
+        previewNode.innerHTML = renderPreviewTable(result.rows)
+      }
+      wireDownload(root, result)
+
+      const receiptText = await buildMirrorVeilReceipt({ input: source.rawText, result })
+      if (receiptNode) {
+        receiptNode.textContent = receiptText
+        receiptNode.hidden = false
+      }
+      wireReceiptDownload(root, receiptText)
+
+      setStatus(
+        statusNode,
+        options.enabled
+          ? `Ready. ${result.stats.redactionsApplied} common identifiers were replaced and the CSV keeps ${MIRROR_VEIL_OUTPUT_LABEL}.`
+          : `Ready. Redaction stayed off and the CSV keeps ${MIRROR_VEIL_OUTPUT_LABEL}.`,
+        'success'
+      )
+    } catch (error) {
+      setStatus(statusNode, error?.message || 'Mirror Veil could not process that export.', 'error')
+      if (receiptNode) {
+        receiptNode.hidden = true
+        receiptNode.textContent = ''
+      }
+      if (previewNode) {
+        previewNode.innerHTML = '<p class="mv-empty">No preview available.</p>'
+      }
+    }
+  })
+}
+
+bootMirrorVeil(document)
+  </script>
+</body>
+</html>
