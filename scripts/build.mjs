@@ -7,11 +7,13 @@ const __dirname = path.dirname(__filename)
 const repoRoot = path.resolve(__dirname, '..')
 const utilsDir = path.resolve(repoRoot, 'src')
 const corePath = path.resolve(utilsDir, 'mirrorVeilStandalone.mjs')
+const sha256Path = path.resolve(utilsDir, 'mirrorVeilSha256.mjs')
 const outputDir = path.resolve(repoRoot, 'dist')
 const constantsModulePath = pathToFileURL(path.resolve(utilsDir, 'mirrorVeilDownload.mjs')).href
 
 const {
   MIRROR_VEIL_DOWNLOAD_FILE,
+  MIRROR_VEIL_DOWNLOAD_VERSION,
   MIRROR_VEIL_NAME,
   MIRROR_VEIL_OUTPUT_LABEL,
   MIRROR_VEIL_TAGLINE,
@@ -344,11 +346,25 @@ bootMirrorVeil(document)
 </html>
 `
 
-const inlineConstants = `const MIRROR_VEIL_DOWNLOAD_FILE = ${JSON.stringify(MIRROR_VEIL_DOWNLOAD_FILE)}\nconst MIRROR_VEIL_NAME = ${JSON.stringify(MIRROR_VEIL_NAME)}\nconst MIRROR_VEIL_OUTPUT_LABEL = ${JSON.stringify(MIRROR_VEIL_OUTPUT_LABEL)}\nconst MIRROR_VEIL_TAGLINE = ${JSON.stringify(MIRROR_VEIL_TAGLINE)}\n`
+const inlineConstants = `const MIRROR_VEIL_DOWNLOAD_FILE = ${JSON.stringify(MIRROR_VEIL_DOWNLOAD_FILE)}\nconst MIRROR_VEIL_DOWNLOAD_VERSION = ${JSON.stringify(MIRROR_VEIL_DOWNLOAD_VERSION)}\nconst MIRROR_VEIL_NAME = ${JSON.stringify(MIRROR_VEIL_NAME)}\nconst MIRROR_VEIL_OUTPUT_LABEL = ${JSON.stringify(MIRROR_VEIL_OUTPUT_LABEL)}\nconst MIRROR_VEIL_TAGLINE = ${JSON.stringify(MIRROR_VEIL_TAGLINE)}\n`
+
+// The output is a classic <script>, so every ES import must be inlined. A single
+// surviving `import` is a SyntaxError that kills the whole file silently -- the
+// page renders and no button does anything. The assertion below is the guard.
+const sha256Source = (await fs.readFile(sha256Path, 'utf8')).replace(/^export\s+/gm, '')
 
 let coreSource = await fs.readFile(corePath, 'utf8')
 coreSource = coreSource.replace(/import\s+\{[\s\S]*?\}\s+from\s+'\.\/mirrorVeilDownload\.mjs'\n/, inlineConstants)
+coreSource = coreSource.replace(/import\s+\{[\s\S]*?\}\s+from\s+'\.\/mirrorVeilSha256\.mjs'\n/, sha256Source)
+// Drop bare re-export blocks entirely. Stripping just the `export ` keyword left
+// `{ A, B, }` behind, and a trailing comma inside that block is a SyntaxError.
+coreSource = coreSource.replace(/^export\s*\{[^}]*\}\s*$/gm, '')
 coreSource = coreSource.replace(/^export\s+/gm, '')
+
+const leftoverImport = coreSource.match(/^\s*import[\s{]/m)
+if (leftoverImport) {
+  throw new Error(`Mirror Veil build: an ES import survived inlining, which would be a SyntaxError in the browser: ${leftoverImport[0].trim()}`)
+}
 
 await fs.mkdir(outputDir, { recursive: true })
 await fs.writeFile(path.join(outputDir, MIRROR_VEIL_DOWNLOAD_FILE), buildHtml(coreSource))
