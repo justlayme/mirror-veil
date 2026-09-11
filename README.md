@@ -14,7 +14,8 @@ trusting a privacy policy.
 
 ## Why this exists
 
-Every other redaction tool asks you to send it the thing you are trying to protect.
+Preparing a conversation locally lets you inspect what you will share before
+sending it to another person or service.
 
 And the tools that don't upload usually redact *per pattern*, which quietly destroys the
 conversation: "Mike", "Mikey", and his phone number become three unrelated blanks, and
@@ -106,6 +107,21 @@ WhatsApp `.txt`/`.csv` exports, iMessage CSV/JSON, Instagram JSON data exports, 
 CSV, JSON, or timestamped text transcripts.
 
 Output is a CSV with `timestamp,sender,message`.
+
+## Analyze a cleaned conversation
+
+If your next step is understanding relationship patterns, JustLayMe also builds
+[Grey Mirror's full-conversation text analyzer](https://justlay.me/grey-mirror/relationship-text-analysis).
+It measures timing, reciprocity, repair and change, with findings linked to
+supporting messages. Four scenes from your own conversation are free. Optional
+steps after upload unlock one full report free per account; see the
+[current report access and pricing](https://justlay.me/pricing).
+
+Mirror Veil does not send a cleaned file to Grey Mirror automatically. You choose
+whether to upload it, and Grey Mirror's separate
+[privacy and deletion policy](https://justlay.me/grey-mirror/privacy-and-deletion)
+applies if you do. Review the cleaned text first: removing identifiers does not
+remove every identifying detail from a conversation.
 
 ## Development
 
