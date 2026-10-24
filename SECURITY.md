@@ -205,7 +205,7 @@ The tool version and processing timestamp are stamped into every receipt, so any
 be traced back to the build that produced it.
 
 Source and release history: `https://github.com/justlayme/mirror-veil` (MIT).
-Project page: `https://justlay.me/mirror-veil`.
+Project page: `https://thegreymirror.com/mirror-veil`.
 
 Because the tool is a single downloaded file, an existing copy keeps working exactly as it
 did and never auto-updates. That is intentional — nothing phones home to check for a new

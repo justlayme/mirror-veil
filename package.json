@@ -4,7 +4,7 @@
   "description": "Redact a conversation before you share it. Runs entirely on your device \u2014 no upload, no account, no server.",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://justlay.me/mirror-veil",
+  "homepage": "https://thegreymirror.com/mirror-veil",
   "repository": {
     "type": "git",
     "url": "https://github.com/justlayme/mirror-veil.git"

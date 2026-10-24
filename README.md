@@ -8,7 +8,7 @@ internet and it still works, which is the simplest way to verify that claim inst
 trusting a privacy policy.
 
 📄 **[Download the tool](https://github.com/justlayme/mirror-veil/raw/main/dist/MirrorVeil.html)** ·
-🌐 [Project page](https://justlay.me/mirror-veil)
+🌐 [Project page](https://thegreymirror.com/mirror-veil)
 
 ---
 
@@ -110,16 +110,17 @@ Output is a CSV with `timestamp,sender,message`.
 
 ## Analyze a cleaned conversation
 
-If your next step is understanding relationship patterns, JustLayMe also builds
-[Grey Mirror's full-conversation text analyzer](https://justlay.me/grey-mirror/relationship-text-analysis).
+If your next step is understanding relationship patterns, Wentropy Labs also builds
+[Grey Mirror's full-conversation text analyzer](https://thegreymirror.com/grey-mirror/relationship-text-analysis).
 It measures timing, reciprocity, repair and change, with findings linked to
-supporting messages. Four scenes from your own conversation are free. Optional
-steps after upload unlock one full report free per account; see the
-[current report access and pricing](https://justlay.me/pricing).
+supporting messages. The analysis and a preview of four evidence-linked findings
+are free, with no card required. An optional full report is $17.99 once, or
+Grey Mirror Plus is $9.99/month for one full report each paid month; see the
+[current report access and pricing](https://thegreymirror.com/pricing).
 
 Mirror Veil does not send a cleaned file to Grey Mirror automatically. You choose
 whether to upload it, and Grey Mirror's separate
-[privacy and deletion policy](https://justlay.me/grey-mirror/privacy-and-deletion)
+[privacy and deletion policy](https://thegreymirror.com/grey-mirror/privacy-and-deletion)
 applies if you do. Review the cleaned text first: removing identifiers does not
 remove every identifying detail from a conversation.
 
@@ -146,8 +147,8 @@ inlines the engine into a single self-contained file with no external requests.
 
 ## Who made it
 
-Built by [JustLayMe](https://justlay.me), which also makes
-[Grey Mirror](https://justlay.me/grey-mirror), a relationship text analyzer. Mirror Veil is
+Built by [Wentropy Labs](https://thegreymirror.com/company/wentropy-labs), which also makes
+[The Grey Mirror](https://thegreymirror.com/grey-mirror), a relationship text analyzer. Mirror Veil is
 free and standalone — it does not require Grey Mirror, and a cleaned file works with any
 tool that reads a CSV.
 
