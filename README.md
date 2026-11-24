@@ -155,3 +155,7 @@ tool that reads a CSV.
 ## License
 
 MIT
+
+---
+
+**Built by [Wentropy Labs](https://wentropylabs.com)** · [Grey Mirror](https://thegreymirror.com), the flagship text message analyzer for relationships · [Unbubble](https://thegreymirror.com/grey-mirror/unbubble), the 100% on-device iPhone message exporter · [Textimony](https://textimony.io) · [LinkedIn](https://www.linkedin.com/company/wentropy-labs) · [Crunchbase](https://www.crunchbase.com/organization/wentropy-labs)
